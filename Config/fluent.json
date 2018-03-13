@@ -10,6 +10,7 @@
     "//": "e.g., `user_id`",
     "//": "`camelCase` option is also available.",
     "keyNamingConvention": "snake_case",
+    "idType":"uuid",
     
     "//": "Name of the table Fluent uses to track migrations.",
     "//": "If null, preparations will not be run.",
