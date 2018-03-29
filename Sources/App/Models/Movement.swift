@@ -18,8 +18,7 @@ final class Movement: Model {
     var sets: Int
     var description: String?
     var image: Bool
-    var superset: Bool
-    var superid: Int?
+    var restTime: Int
     
     
     struct Keys {
@@ -29,18 +28,16 @@ final class Movement: Model {
         static let sets = "sets"
         static let description = "description"
         static let image = "image"
-        static let superset = "superset"
-        static let superid = "superid"
+        static let restTime = "restTime"
     }
     
-    init(name: String, reps: Int, sets: Int, description: String? = nil, image: Bool, superset: Bool, superid: Int? = nil) {
+    init(name: String, reps: Int, sets: Int, description: String? = nil, image: Bool, restTime: Int) {
         self.name = name
         self.reps = reps
         self.sets = sets
         self.description = description
         self.image = image
-        self.superset = superset
-        self.superid = superid
+        self.restTime = restTime
     }
     
     
@@ -51,8 +48,7 @@ final class Movement: Model {
         self.sets = try row.get(Keys.sets)
         self.description = try row.get(Keys.description)
         self.image = try row.get(Keys.image)
-        self.superset = try row.get(Keys.superset)
-        self.superid = try row.get(Keys.superid)
+        self.restTime = try row.get(Keys.restTime)
     }
     
     func makeRow() throws -> Row {
@@ -62,8 +58,7 @@ final class Movement: Model {
         try row.set(Keys.sets, sets)
         try row.set(Keys.description, description)
         try row.set(Keys.image, image)
-        try row.set(Keys.superset, superset)
-        try row.set(Keys.superid, superid)
+        try row.set(Keys.restTime, restTime)
         return row
     }
 }
@@ -77,8 +72,7 @@ extension Movement: Preparation {
             builder.int(Keys.sets)
             builder.string(Keys.description)
             builder.bool(Keys.image)
-            builder.bool(Keys.superset)
-            builder.int(Keys.superid)
+            builder.int(Keys.restTime)
         }
     }
     
@@ -96,8 +90,7 @@ extension Movement: JSONConvertible {
             sets: json.get(Keys.sets),
             description: json.get(Keys.description),
             image: json.get(Keys.image),
-            superset: json.get(Keys.superset),
-            superid: json.get(Keys.superid)
+            restTime: json.get(Keys.restTime)
         )
         id = try json.get(Keys.id)
     }
@@ -110,8 +103,7 @@ extension Movement: JSONConvertible {
         try json.set(Keys.sets, sets)
         try json.set(Keys.description, description)
         try json.set(Keys.image, image)
-        try json.set(Keys.superset, superset)
-        try json.set(Keys.superid, superid)
+        try json.set(Keys.restTime, restTime)
         return json
     }
 }
@@ -136,16 +128,19 @@ extension Movement: Updateable {
             UpdateableKey(Movement.Keys.sets) { movement, sets in
                 movement.sets = sets
             },
-            UpdateableKey(Movement.Keys.superid) { movement, superid in
-                movement.superid = superid
-            },
-            UpdateableKey(Movement.Keys.superset) { movement, superset in
-                movement.superset = superset
+            UpdateableKey(Movement.Keys.restTime) { movement, restTime in
+                movement.restTime = restTime
             }
         ]
     }
-    
-    
 }
+
+extension Movement {
+    var tags: Siblings<Movement, MovementTag, Pivot<Movement, MovementTag>> {
+        return siblings()
+    }
+}
+
+
 
 

@@ -122,9 +122,19 @@ extension Droplet {
         //
         // GET /me
         // Authorization: Bearer <token from /login>
-        token.get("me") { req in
+        token.get("tokenUser") { req in
             let user = try req.user()
-            return "Hello, \(user.firstname)"
+            return user
+        }
+        
+        
+        token.get("routineForToken") { req in
+            let user = try req.user()
+            guard let routine = try user.routine.first() else { throw Abort.notFound }
+            var routineJson = try routine.makeJSON()
+            let daysJson = try routine.days.all().makeJSON()
+            try routineJson.set("days", daysJson)
+            return routineJson
         }
     }
 }

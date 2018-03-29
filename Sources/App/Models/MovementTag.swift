@@ -1,8 +1,8 @@
 //
-//  Routine.swift
-//  FYP-APIPackageDescription
+//  MovementTag.swift
+//  App
 //
-//  Created by Ben Kovacs on 2018-03-12.
+//  Created by Ben Kovacs on 2018-03-28.
 //
 
 import Foundation
@@ -11,43 +11,37 @@ import FluentProvider
 import AuthProvider
 import HTTP
 
-final class Routine: Model {
+final class MovementTag: Model {
     let storage = Storage()
     
     var name: String
-    var userIdKey: Identifier?
     
     struct Keys {
         static let id = "id"
         static let name = "name"
-        static let userIdKey = "user_id"
     }
     
-    init(name: String, userIdKey: Identifier? = nil) {
+    init(name: String) {
         self.name = name
-        self.userIdKey = userIdKey
     }
     
     
     init(row: Row) throws {
         self.name = try row.get(Keys.name)
-        self.userIdKey = try row.get(Keys.userIdKey)
     }
     
     func makeRow() throws -> Row {
         var row = Row()
         try row.set(Keys.name, name)
-        try row.set(Keys.userIdKey, userIdKey)
         return row
     }
 }
 
-extension Routine: Preparation {
+extension MovementTag: Preparation {
     static func prepare(_ database: Database) throws {
         try database.create(self) { builder in
             builder.id()
             builder.string(Keys.name, optional: true)
-            builder.foreignId(for: User.self, optional: true)
         }
     }
     
@@ -56,12 +50,11 @@ extension Routine: Preparation {
     }
 }
 
-extension Routine: JSONConvertible {
+extension MovementTag: JSONConvertible {
     convenience init(json: JSON) throws {
         
         try self.init(
-            name: json.get(Keys.name),
-            userIdKey: json.get(Keys.userIdKey)
+            name: json.get(Keys.name)
         )
         id = try json.get(Keys.id)
     }
@@ -69,33 +62,26 @@ extension Routine: JSONConvertible {
     func makeJSON() throws -> JSON {
         var json = JSON()
         try json.set(Keys.id, id)
-        try json.set(Keys.userIdKey, userIdKey)
         try json.set(Keys.name, name)
         return json
     }
 }
 
-extension Routine: ResponseRepresentable { }
+extension MovementTag: ResponseRepresentable { }
 
-extension Routine: Updateable {
-    static var updateableKeys: [UpdateableKey<Routine>] {
+extension MovementTag: Updateable {
+    
+    static var updateableKeys: [UpdateableKey<MovementTag>] {
         return [
-            UpdateableKey(Routine.Keys.name) { routine, name in
+            UpdateableKey(MovementTag.Keys.name) { routine, name in
                 routine.name = name
             }
         ]
     }
 }
 
-extension Routine {
+extension MovementTag {
     
-    var days: Children<Routine, RoutineDay> {
-        return children()
-    }
-    
-    var user: Parent<Routine, User> {
-        return parent(id: self.userIdKey)
-    }
 }
 
 

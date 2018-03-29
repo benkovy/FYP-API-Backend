@@ -69,8 +69,6 @@ final class MovementController: ResourceRepresentable {
         movement.image = new.image
         movement.reps = new.reps
         movement.sets = new.sets
-        movement.superid = new.superid
-        movement.superset = new.superset
         try movement.save()
         
         // Return the updated movement

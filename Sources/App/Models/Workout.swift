@@ -138,5 +138,9 @@ extension Workout {
     var movements: Siblings<Workout, Movement, Pivot<Workout, Movement>> {
         return siblings()
     }
+    
+    var tags: Siblings<Workout, WorkoutTag, Pivot<Workout, WorkoutTag>> {
+        return siblings()
+    }
 }
 

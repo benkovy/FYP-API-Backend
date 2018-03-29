@@ -171,6 +171,12 @@ extension User {
     var workouts: Siblings<User, Workout, Pivot<User, Workout>> {
         return siblings()
     }
+    
+    var routine: Children<User, Routine> {
+        return children()
+    }
+    
+    
 }
 
 

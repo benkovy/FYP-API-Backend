@@ -15,9 +15,9 @@ final class RoutineDay: Model {
     
     let day: Int
     let empty: Bool
-    let initialized: String
-    let finalized: String
-    let routineId: String
+    let initialized: String?
+    let finalized: String?
+    var routineIdKey: Identifier?
     
     struct Keys {
         static let id = "id"
@@ -25,15 +25,15 @@ final class RoutineDay: Model {
         static let empty = "empty"
         static let initialized = "initialized"
         static let finalized = "finalized"
-        static let routineId = "routineId"
+        static let routineId = "routine_id"
     }
     
-    init(day: Int, empty: Bool, initialized: String, finalized: String, routineId: String) {
+    init(day: Int, empty: Bool, initialized: String? = nil, finalized: String? = nil, routineIdKey: Identifier? = nil) {
         self.day = day
         self.empty = empty
         self.initialized = initialized
         self.finalized = finalized
-        self.routineId = routineId
+        self.routineIdKey = routineIdKey
     }
     
     init(row: Row) throws {
@@ -41,7 +41,7 @@ final class RoutineDay: Model {
         self.empty = try row.get(Keys.empty)
         self.initialized = try row.get(Keys.initialized)
         self.finalized = try row.get(Keys.finalized)
-        self.routineId = try row.get(Keys.routineId)
+        self.routineIdKey = try row.get(Keys.routineId)
     }
     
     func makeRow() throws -> Row {
@@ -50,7 +50,7 @@ final class RoutineDay: Model {
         try row.set(Keys.empty, empty)
         try row.set(Keys.initialized, initialized)
         try row.set(Keys.finalized, finalized)
-        try row.set(Keys.routineId, routineId)
+        try row.set(Keys.routineId, routineIdKey)
         return row
     }
 }
@@ -60,10 +60,10 @@ extension RoutineDay: Preparation {
         try database.create(self) { builder in
             builder.id()
             builder.int(Keys.day)
-            builder.string(Keys.initialized)
-            builder.string(Keys.finalized)
+            builder.string(Keys.initialized, optional: true)
+            builder.string(Keys.finalized, optional: true)
             builder.bool(Keys.empty)
-            builder.string(Keys.routineId)
+            builder.foreignId(for: Routine.self, optional: true)
         }
     }
     
@@ -80,7 +80,7 @@ extension RoutineDay: JSONConvertible {
             empty: json.get(Keys.empty),
             initialized: json.get(Keys.initialized),
             finalized: json.get(Keys.finalized),
-            routineId: json.get(Keys.routineId)
+            routineIdKey: json.get(Keys.routineId)
         )
         id = try json.get(Keys.id)
     }
@@ -92,11 +92,15 @@ extension RoutineDay: JSONConvertible {
         try json.set(Keys.initialized, initialized)
         try json.set(Keys.finalized, finalized)
         try json.set(Keys.day, day)
-        try json.set(Keys.routineId, routineId)
+        try json.set(Keys.routineId, routineIdKey)
         return json
     }
 }
 
 extension RoutineDay: ResponseRepresentable { }
 
-
+extension RoutineDay {
+    var routine: Parent<RoutineDay, Routine> {
+        return parent(id: self.routineIdKey, type: Routine.self)
+    }
+}
