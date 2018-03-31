@@ -19,6 +19,27 @@ final class WorkoutController: ResourceRepresentable {
         return json
     }
     
+    func getWorkoutAndMovements(_ req: Request) throws -> ResponseRepresentable {
+//        let amount = try req.parameters.next(Int.self)
+        guard let workouts = try? Workout.all() else { throw Abort.badRequest }
+        var jsonWebWorkouts: [JSON] = []
+        
+        try workouts.forEach {
+            var stringTags: [String] = []
+            let movements = try $0.movements.all()
+            let tags = try $0.tags.all()
+            tags.forEach { stringTags.append($0.name) }
+            var jWorkout = try $0.makeJSON()
+            let jMovements = try movements.makeJSON()
+            try jWorkout.set("movements", jMovements)
+            try jWorkout.set("tags", stringTags)
+            guard let user = try User.find($0.creator) else { throw Abort.notFound }
+            let userName = user.firstname + " " + user.lastname
+            try jWorkout.set("creatorName", userName)
+            jsonWebWorkouts.append(jWorkout)
+        }
+        return try jsonWebWorkouts.makeJSON()
+    }
     
     /// When users call 'GET' on '/workout'
     /// it should return an index of all available workout
@@ -39,7 +60,13 @@ final class WorkoutController: ResourceRepresentable {
     /// construct and save the workout
     func store(_ req: Request) throws -> ResponseRepresentable {
         let workout = try req.workout()
-        return workout
+        guard let user = try User.find(workout.creator) else { throw Abort.notFound }
+        let userName = user.firstname + " " + user.lastname
+        var json = try workout.makeJSON()
+        try json.set("creatorName", userName)
+        var jW = try workout.makeJSON()
+        try jW.set("tags", workout.stringTags)
+        return jW
     }
     
     /// When the consumer calls 'GET' on a specific resource, ie:
@@ -121,14 +148,23 @@ extension Request {
         // 3. Save workout
         // 4. Store workout in pivot with user
         // 5. Store movements in pivot with workout
-        // 6. Return workout
+        // 6. Save Tags in pivot with workout
+        // 7. Return workout
         
         // 1.
         let movements: [Movement] = try json.get("movements")
         let _ = movements.map { try? $0.save() }
+        let tags: [String] = try json.get("tags")
+        var workoutTags: [WorkoutTag] = []
+        try tags.forEach { tag in
+            let wTag = WorkoutTag(name: tag)
+            workoutTags.append(wTag)
+            try wTag.save()
+        }
         
         // 2.
         json.removeKey("movements")
+        json.removeKey("tags")
         
         // 3.
         guard let workout = try? Workout(json: json) else { throw Abort.badRequest }
@@ -146,6 +182,13 @@ extension Request {
         }
         
         // 6.
+        
+        try workoutTags.forEach { tag in
+            let pivot = try Pivot<Workout, WorkoutTag>(workout, tag)
+            try pivot.save()
+        }
+        
+        // 7.
         return workout
     }
 }

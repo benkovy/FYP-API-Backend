@@ -142,5 +142,12 @@ extension Workout {
     var tags: Siblings<Workout, WorkoutTag, Pivot<Workout, WorkoutTag>> {
         return siblings()
     }
+    
+    var stringTags:[String] {
+        guard let tags = try? self.tags.all() else { return [] }
+        var sTags: [String] = []
+        tags.forEach { sTags.append($0.name) }
+        return sTags
+    }
 }
 

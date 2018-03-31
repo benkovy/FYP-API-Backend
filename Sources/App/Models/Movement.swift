@@ -135,12 +135,6 @@ extension Movement: Updateable {
     }
 }
 
-extension Movement {
-    var tags: Siblings<Movement, MovementTag, Pivot<Movement, MovementTag>> {
-        return siblings()
-    }
-}
-
 
 
 

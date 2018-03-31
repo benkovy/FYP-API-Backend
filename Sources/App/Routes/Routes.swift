@@ -23,6 +23,8 @@ extension Droplet {
         get("workout", String.parameter, "movement", handler: workout.getMovements)
         get("user", String.parameter, "workout", handler: user.getUserWorkouts)
         
+        get("workoutAndMovements", Int.parameter, handler: workout.getWorkoutAndMovements)
+        
         get("routine", String.parameter, "day", handler: routine.getRoutineDays)
         
     }
