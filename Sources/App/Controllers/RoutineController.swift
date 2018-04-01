@@ -30,8 +30,30 @@ final class RoutineController: ResourceRepresentable {
         let routine = try req.routine()
         var routineJson = try routine.makeJSON()
         let days = try routine.days.all()
-        let daysJson = try days.makeJSON()
-        try routineJson.set("days", daysJson)
+        var newDays: [JSON] = []
+        try days.forEach { day in
+            
+            if let id = day.workoutId {
+                let webworkout = try Workout.workoutAndMove(forID: id)
+                let tags = try day.tags.all()
+                let newtags = tags.compactMap { $0.name }
+                var jDay = try day.makeJSON()
+                jDay.removeKey("initialized")
+                try jDay.set("initialized", newtags)
+                try jDay.set("finalized", webworkout)
+                newDays.append(jDay)
+            } else if day.initialized != nil {
+                let tags = try day.tags.all()
+                let newtags = tags.compactMap { $0.name }
+                var jDay = try day.makeJSON()
+                jDay.removeKey("initialized")
+                try jDay.set("initialized", newtags)
+                newDays.append(jDay)
+            } else {
+                newDays.append(try day.makeJSON())
+            }
+        }
+        try routineJson.set("days", try newDays.makeJSON())
         return routineJson
     }
     
@@ -87,17 +109,23 @@ extension Request {
         guard var json = json else { throw Abort.badRequest }
         // Get individual routine days
         // Remove days from routine
-        let days: [RoutineDay] = try json.get("days")
+        let days: [JSON] = try json.get("days")
         json.removeKey("days")
         
         // Try to create routine
         guard let routine = try? Routine(json: json) else { throw Abort.badRequest }
-        
         // Make sure that there is a user for new routine
         guard let user = try User.find(routine.userIdKey?.string) else { throw Abort.badRequest }
         
         // Remove current routine from user
         if let currentRoutine = try user.routine.first() {
+            if let days = try? currentRoutine.days.all() {
+                try days.forEach { day in
+                    try day.tags.all().forEach { tag in
+                        try day.tags.remove(tag)
+                    }
+                }
+            }
             try currentRoutine.days.delete()
             try currentRoutine.delete()
         }
@@ -106,10 +134,31 @@ extension Request {
         routine.userIdKey = user.id
         try routine.save()
         
-        // Save all days to each routine
+        // Save all days to routine
         try days.forEach {
-            $0.routineIdKey = routine.id
-            try $0.save()
+            let dayWrapper = try DayWrapper(json: $0)
+            let dayTosave = RoutineDay(
+                day: dayWrapper.day,
+                empty: dayWrapper.empty,
+                initialized: dayWrapper.initialized?.joined(separator: "|"),
+                workoutId: dayWrapper.workoutId,
+                routineIdKey: routine.id
+            )
+            try dayTosave.save()
+            
+            if let tags = dayWrapper.initialized {
+                try tags.forEach { tag in
+                    if let wasTag = try WorkoutTag.makeQuery().filter("name", .equals, tag).first() {
+                        let pivot = try Pivot<RoutineDay, WorkoutTag>(dayTosave, wasTag)
+                        try pivot.save()
+                    } else {
+                        let t = WorkoutTag(name: tag)
+                        try t.save()
+                        let pivot = try Pivot<RoutineDay, WorkoutTag>(dayTosave, t)
+                        try pivot.save()
+                    }
+                }
+            }
         }
         return routine
     }

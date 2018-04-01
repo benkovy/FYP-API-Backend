@@ -151,3 +151,22 @@ extension Workout {
     }
 }
 
+extension Workout {
+    static func workoutAndMove(forID id: String) throws -> JSON {
+        guard let workout = try Workout.find(id) else { throw Abort.badRequest }
+        var stringTags: [String] = []
+        let movements = try workout.movements.all()
+        let tags = try workout.tags.all()
+        tags.forEach { stringTags.append($0.name) }
+        var jWorkout = try workout.makeJSON()
+        let jMovements = try movements.makeJSON()
+        try jWorkout.set("movements", jMovements)
+        try jWorkout.set("tags", stringTags)
+        guard let user = try User.find(workout.creator) else { throw Abort.notFound }
+        let userName = user.firstname + " " + user.lastname
+        try jWorkout.set("creatorName", userName)
+        
+        return jWorkout
+    }
+}
+

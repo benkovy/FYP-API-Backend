@@ -194,4 +194,3 @@ extension Request {
 }
 
 extension WorkoutController: EmptyInitializable { }
-

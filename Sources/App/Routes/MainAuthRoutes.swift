@@ -132,8 +132,31 @@ extension Droplet {
             let user = try req.user()
             guard let routine = try user.routine.first() else { throw Abort.notFound }
             var routineJson = try routine.makeJSON()
-            let daysJson = try routine.days.all().makeJSON()
-            try routineJson.set("days", daysJson)
+            let days = try routine.days.all()
+            var newDays: [JSON] = []
+            try days.forEach { day in
+                if let id = day.workoutId {
+                    let webworkout = try Workout.workoutAndMove(forID: id)
+                    let tags = try day.tags.all()
+                    let newtags = tags.compactMap { $0.name }
+                    var jDay = try day.makeJSON()
+                    jDay.removeKey("initialized")
+                    try jDay.set("initialized", newtags)
+                    try jDay.set("finalized", webworkout)
+                    newDays.append(jDay)
+                    
+                } else if day.initialized != nil {
+                    let tags = try day.tags.all()
+                    let newtags = tags.compactMap { $0.name }
+                    var jDay = try day.makeJSON()
+                    jDay.removeKey("initialized")
+                    try jDay.set("initialized", newtags)
+                    newDays.append(jDay)
+                } else {
+                    newDays.append(try day.makeJSON())
+                }
+            }
+            try routineJson.set("days", try newDays.makeJSON())
             return routineJson
         }
     }
