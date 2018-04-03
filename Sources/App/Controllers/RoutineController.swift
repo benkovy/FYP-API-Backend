@@ -40,7 +40,7 @@ final class RoutineController: ResourceRepresentable {
                 var jDay = try day.makeJSON()
                 jDay.removeKey("initialized")
                 try jDay.set("initialized", newtags)
-                try jDay.set("finalized", webworkout)
+                try jDay.set("finalized", try [webworkout].makeJSON())
                 newDays.append(jDay)
             } else if day.initialized != nil {
                 let tags = try day.tags.all()
@@ -48,6 +48,7 @@ final class RoutineController: ResourceRepresentable {
                 var jDay = try day.makeJSON()
                 jDay.removeKey("initialized")
                 try jDay.set("initialized", newtags)
+                try jDay.set("finalized", try Workout.workoutAndMove(forAmount: 10, forTypes: tags))
                 newDays.append(jDay)
             } else {
                 newDays.append(try day.makeJSON())
@@ -111,7 +112,6 @@ extension Request {
         // Remove days from routine
         let days: [JSON] = try json.get("days")
         json.removeKey("days")
-        
         // Try to create routine
         guard let routine = try? Routine(json: json) else { throw Abort.badRequest }
         // Make sure that there is a user for new routine
@@ -147,7 +147,7 @@ extension Request {
             try dayTosave.save()
             
             if let tags = dayWrapper.initialized {
-                try tags.forEach { tag in
+                for tag in tags {
                     if let wasTag = try WorkoutTag.makeQuery().filter("name", .equals, tag).first() {
                         let pivot = try Pivot<RoutineDay, WorkoutTag>(dayTosave, wasTag)
                         try pivot.save()

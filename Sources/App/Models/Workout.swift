@@ -17,7 +17,7 @@ final class Workout: Model {
     var creator: String
     var time: Int
     var description: String?
-    var image: Bool
+//    var image: Bool
     var rating: Int
     
     
@@ -27,16 +27,16 @@ final class Workout: Model {
         static let creator = "creator"
         static let time = "time"
         static let description = "description"
-        static let image = "image"
+//        static let image = "image"
         static let rating = "rating"
     }
     
-    init(name: String, creator: String, time: Int, description: String? = nil, image: Bool, rating: Int) {
+    init(name: String, creator: String, time: Int, description: String? = nil, /*image: Bool,*/ rating: Int) {
         self.name = name
         self.creator = creator
         self.time = time
         self.description = description
-        self.image = image
+//        self.image = image
         self.rating = rating
     }
     
@@ -46,7 +46,7 @@ final class Workout: Model {
         self.creator = try row.get(Keys.creator)
         self.time = try row.get(Keys.time)
         self.description = try row.get(Keys.description)
-        self.image = try row.get(Keys.image)
+//        self.image = try row.get(Keys.image)
         self.rating = try row.get(Keys.rating)
     }
     
@@ -56,7 +56,7 @@ final class Workout: Model {
         try row.set(Keys.creator, creator)
         try row.set(Keys.time, time)
         try row.set(Keys.description, description)
-        try row.set(Keys.image, image)
+//        try row.set(Keys.image, image)
         try row.set(Keys.rating, rating)
         return row
     }
@@ -70,7 +70,7 @@ extension Workout: Preparation {
             builder.string(Keys.creator)
             builder.int(Keys.time)
             builder.string(Keys.description)
-            builder.bool(Keys.image)
+//            builder.bool(Keys.image)
             builder.int(Keys.rating)
         }
     }
@@ -88,7 +88,7 @@ extension Workout: JSONConvertible {
             creator: json.get(Keys.creator),
             time: json.get(Keys.time),
             description: json.get(Keys.description),
-            image: json.get(Keys.image),
+//            image: json.get(Keys.image),
             rating: json.get(Keys.rating)
         )
         id = try json.get(Keys.id)
@@ -101,7 +101,7 @@ extension Workout: JSONConvertible {
         try json.set(Keys.creator, creator)
         try json.set(Keys.time, time)
         try json.set(Keys.description, description)
-        try json.set(Keys.image, image)
+//        try json.set(Keys.image, image)
         try json.set(Keys.rating, rating)
         return json
     }
@@ -118,9 +118,9 @@ extension Workout: Updateable {
             UpdateableKey(Workout.Keys.description){ Workout, desc in
                 Workout.description = desc
             },
-            UpdateableKey(Workout.Keys.image) { Workout, image in
-                Workout.image = image
-            },
+//            UpdateableKey(Workout.Keys.image) { Workout, image in
+//                Workout.image = image
+//            },
             UpdateableKey(Workout.Keys.creator) { Workout, creator in
                 Workout.creator = creator
             },
@@ -162,11 +162,39 @@ extension Workout {
         let jMovements = try movements.makeJSON()
         try jWorkout.set("movements", jMovements)
         try jWorkout.set("tags", stringTags)
+        try jWorkout.set("image", WorkoutController.image(id: id))
         guard let user = try User.find(workout.creator) else { throw Abort.notFound }
         let userName = user.firstname + " " + user.lastname
         try jWorkout.set("creatorName", userName)
-        
         return jWorkout
+    }
+    
+    static func workoutAndMove(forAmount amount: Int, forTypes: [WorkoutTag]) throws -> JSON {
+        var workouts: [Workout] = []
+        var json: [JSON] = []
+        forTypes.forEach { tag in
+            if let w = try? tag.workouts.limit(10).all() {
+                workouts.append(contentsOf: w)
+            }
+        } 
+        for workout in workouts {
+            var stringTags: [String] = []
+            let movements = try workout.movements.all()
+            let tags = try workout.tags.all()
+            tags.forEach { stringTags.append($0.name) }
+            var jWorkout = try workout.makeJSON()
+            let jMovements = try movements.makeJSON()
+            if let id = workout.id?.string {
+                try jWorkout.set("image", WorkoutController.image(id: id))
+            }
+            try jWorkout.set("movements", jMovements)
+            try jWorkout.set("tags", stringTags)
+            guard let user = try User.find(workout.creator) else { throw Abort.notFound }
+            let userName = user.firstname + " " + user.lastname
+            try jWorkout.set("creatorName", userName)
+            json.append(jWorkout)
+        }
+        return try json.makeJSON()
     }
 }
 

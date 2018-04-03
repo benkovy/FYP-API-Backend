@@ -20,6 +20,8 @@ extension Droplet {
         let routine = RoutineController()
         resource("routine", routine)
         
+        patch("user", String.parameter, handler: user.updateUser)
+        
         get("workout", String.parameter, "movement", handler: workout.getMovements)
         get("user", String.parameter, "workout", handler: user.getUserWorkouts)
         

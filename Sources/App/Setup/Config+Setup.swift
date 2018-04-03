@@ -32,6 +32,7 @@ extension Config {
         preparations.append(WorkoutTag.self)
         preparations.append(MovementTag.self)
         preparations.append(Pivot<RoutineDay, WorkoutTag>.self)
+//        preparations.append(Pivot<WorkoutTag, Workout>.self)
         preparations.append(Pivot<Workout, WorkoutTag>.self)
         preparations.append(Pivot<Movement, MovementTag>.self)
     }

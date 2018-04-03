@@ -7,6 +7,7 @@
 
 import Vapor
 import HTTP
+import Foundation
 
 final class UserController: ResourceRepresentable {
     
@@ -36,7 +37,11 @@ final class UserController: ResourceRepresentable {
     func store(_ req: Request) throws -> ResponseRepresentable {
         let user = try req.user()
         try user.save()
-        return user
+        var json = try user.makeJSON()
+        if let id = user.id?.string {
+            try json.set("image", UserController.image(id: id))
+        }
+        return json
     }
     
     /// When the consumer calls 'GET' on a specific resource, ie:
@@ -61,13 +66,29 @@ final class UserController: ResourceRepresentable {
     
     /// When the user calls 'PATCH' on a specific resource, we should
     /// update that resource to the new values.
-    func update(_ req: Request, user: User) throws -> ResponseRepresentable {
-        // See `extension user: Updateable`
-        try user.update(for: req)
+//    func update(_ req: Request, user: User) throws -> ResponseRepresentable {
+//        // See `extension user: Updateable`
+//
+//        try user.update(for: req)
+//
+//        // Save an return the updated user.
+//        try user.save()
+//        var json = try user.makeJSON()
+//        if let id = user.id?.string {
+//            try json.set("image", UserController.image(id: id))
+//        }
+//        return json
+//    }
+    
+    func updateUser(req: Request) throws -> ResponseRepresentable {
+        let id = try req.parameters.next(String.self)
         
-        // Save an return the updated user.
-        try user.save()
-        return user
+        guard let user = try User.find(id) else {throw Abort.badRequest}
+        try user.update(for: req)
+        var json = try user.makeJSON()
+        try json.set("image", UserController.image(id: id))
+        return json
+        
     }
     
     /// When a user calls 'PUT' on a specific resource, we should replace any
@@ -102,7 +123,6 @@ final class UserController: ResourceRepresentable {
             index: index,
             store: store,
             show: show,
-            update: update,
             replace: replace,
             destroy: delete,
             clear: clear
@@ -112,4 +132,12 @@ final class UserController: ResourceRepresentable {
 
 extension UserController: EmptyInitializable { }
 
+extension UserController {
+    static func image(id: String) -> String?  {
+        let base = URL(fileURLWithPath: "/Users/benkovacs/Documents/workspaces/FourthYearProject/Vapor/FYP-API/").appendingPathComponent("profileImages")
+        let workoutDir = base.appendingPathComponent(id)
+        let workoutDirWithImage = workoutDir.appendingPathComponent("profileImage")
+        return try? Data(contentsOf: workoutDirWithImage).base64EncodedString()
+    }
+}
 

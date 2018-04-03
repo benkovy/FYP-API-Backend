@@ -8,6 +8,7 @@
 import Vapor
 import FluentProvider
 import HTTP
+import Foundation
 
 final class WorkoutController: ResourceRepresentable {
     
@@ -23,7 +24,6 @@ final class WorkoutController: ResourceRepresentable {
 //        let amount = try req.parameters.next(Int.self)
         guard let workouts = try? Workout.all() else { throw Abort.badRequest }
         var jsonWebWorkouts: [JSON] = []
-        
         try workouts.forEach {
             var stringTags: [String] = []
             let movements = try $0.movements.all()
@@ -33,6 +33,9 @@ final class WorkoutController: ResourceRepresentable {
             let jMovements = try movements.makeJSON()
             try jWorkout.set("movements", jMovements)
             try jWorkout.set("tags", stringTags)
+            if let id = $0.id?.string {
+                try jWorkout.set("image", WorkoutController.image(id: id))
+            }
             guard let user = try User.find($0.creator) else { throw Abort.notFound }
             let userName = user.firstname + " " + user.lastname
             try jWorkout.set("creatorName", userName)
@@ -51,6 +54,9 @@ final class WorkoutController: ResourceRepresentable {
             let userName = user.firstname + " " + user.lastname
             var json = try workout.makeJSON()
             try json.set("creatorName", userName)
+            if let id = workout.id?.string {
+                try json.set("image", WorkoutController.image(id: id))
+            }
             jsonWorkouts.append(json)
         }
         return try jsonWorkouts.makeJSON()
@@ -63,6 +69,9 @@ final class WorkoutController: ResourceRepresentable {
         guard let user = try User.find(workout.creator) else { throw Abort.notFound }
         let userName = user.firstname + " " + user.lastname
         var json = try workout.makeJSON()
+        if let id = workout.id?.string {
+            try json.set("image", WorkoutController.image(id: id))
+        }
         try json.set("creatorName", userName)
         var jW = try workout.makeJSON()
         try jW.set("tags", workout.stringTags)
@@ -112,7 +121,7 @@ final class WorkoutController: ResourceRepresentable {
         // the new workout
         workout.name = new.name
         workout.description = new.description
-        workout.image = new.image
+//        workout.image = new.image
         workout.creator = new.creator
         workout.time = new.time
         workout.rating = new.rating
@@ -156,10 +165,15 @@ extension Request {
         let _ = movements.map { try? $0.save() }
         let tags: [String] = try json.get("tags")
         var workoutTags: [WorkoutTag] = []
+        
         try tags.forEach { tag in
-            let wTag = WorkoutTag(name: tag)
-            workoutTags.append(wTag)
-            try wTag.save()
+            if let wasTag = try WorkoutTag.makeQuery().filter("name", .equals, tag).first() {
+                workoutTags.append(wasTag)
+            } else {
+                let wTag = WorkoutTag(name: tag)
+                workoutTags.append(wTag)
+                try wTag.save()
+            }
         }
         
         // 2.
@@ -194,3 +208,13 @@ extension Request {
 }
 
 extension WorkoutController: EmptyInitializable { }
+
+extension WorkoutController {
+    static func image(id: String) -> String?  {
+        let base = URL(fileURLWithPath: "/Users/benkovacs/Documents/workspaces/FourthYearProject/Vapor/FYP-API/").appendingPathComponent("images")
+        let workoutDir = base.appendingPathComponent(id)
+        let workoutDirWithImage = workoutDir.appendingPathComponent("workoutImage")
+        return try? Data(contentsOf: workoutDirWithImage).base64EncodedString()
+    }
+
+}

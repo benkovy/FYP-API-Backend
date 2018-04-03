@@ -134,9 +134,6 @@ extension User: Updateable {
             UpdateableKey(User.Keys.email) { user, email in
                 user.email = email
             },
-            UpdateableKey(User.Keys.dateOfBirth) { user, dateOfBirth in
-                user.dateOfBirth = dateOfBirth
-            },
             UpdateableKey(User.Keys.type) { user, type in
                 user.type = type
             }
@@ -175,8 +172,6 @@ extension User {
     var routine: Children<User, Routine> {
         return children()
     }
-    
-    
 }
 
 

@@ -10,7 +10,66 @@ import Vapor
 import AuthProvider
 
 extension Droplet {
+    
     func setupUnauthenticatedRoutes() throws {
+        
+        post("profileImage") { req in
+            guard
+                let image = req.formData?["image"]?.bytes,
+                let imageName = req.formData?["image"]?.filename
+                else {
+                    print("Something Went wrong")
+                    throw Abort.badRequest
+            }
+            
+            let parts = imageName.split(separator: "|")
+            let id = parts[1].description
+            let filename = parts[0].description
+            
+            let baseDir = URL(fileURLWithPath: "/Users/benkovacs/Documents/workspaces/FourthYearProject/Vapor/FYP-API/").appendingPathComponent("profileImages")
+            
+            let userDir = baseDir.appendingPathComponent(id)
+            let fileManager = FileManager()
+            
+            /// check whether directory already exists
+            if !fileManager.fileExists(atPath: userDir.path) {
+                try fileManager.createDirectory(at: userDir, withIntermediateDirectories: false, attributes: nil)
+            }
+            let userDirWithImage = userDir.appendingPathComponent(filename)
+            /// write image to directory
+            let data = Data(bytes: image)
+            fileManager.createFile(atPath: userDirWithImage.path, contents: data, attributes: nil)
+            return Data(bytes: image)
+        }
+        
+        post("image") { req in
+            guard
+                let image = req.formData?["image"]?.bytes,
+                let imageName = req.formData?["image"]?.filename
+            else {
+                print("Something Went wrong")
+                return "Uh oh"
+            }
+            
+            let parts = imageName.split(separator: "|")
+            let id = parts[1].description
+            let filename = parts[0].description
+            
+            let baseDir = URL(fileURLWithPath: "/Users/benkovacs/Documents/workspaces/FourthYearProject/Vapor/FYP-API/").appendingPathComponent("images")
+            
+            let workoutDir = baseDir.appendingPathComponent(id)
+            let fileManager = FileManager()
+            
+            /// check whether directory already exists
+            if !fileManager.fileExists(atPath: workoutDir.path) {
+                try fileManager.createDirectory(at: workoutDir, withIntermediateDirectories: false, attributes: nil)
+            }
+            let workoutDirWithImage = workoutDir.appendingPathComponent(filename)
+            /// write image to directory
+            let data = Data(bytes: image)
+            fileManager.createFile(atPath: workoutDirWithImage.path, contents: data, attributes: nil)
+            return Data(bytes: image)
+        }
         
         // End point to check if email has been used
         post("email") { req in
@@ -100,6 +159,9 @@ extension Droplet {
             try token.save()
             var json = try user.makeJSON()
             try json.set("token", ["token": token.token])
+            if let id = user.id?.string {
+                try json.set("image", UserController.image(id: id))
+            }
             return json
         }
         
@@ -124,7 +186,11 @@ extension Droplet {
         // Authorization: Bearer <token from /login>
         token.get("tokenUser") { req in
             let user = try req.user()
-            return user
+            var json = try user.makeJSON()
+            if let id = user.id?.string {
+                try json.set("image", UserController.image(id: id))
+            }
+            return json
         }
         
         
@@ -142,15 +208,15 @@ extension Droplet {
                     var jDay = try day.makeJSON()
                     jDay.removeKey("initialized")
                     try jDay.set("initialized", newtags)
-                    try jDay.set("finalized", webworkout)
+                    try jDay.set("finalized", try [webworkout].makeJSON())
                     newDays.append(jDay)
-                    
                 } else if day.initialized != nil {
                     let tags = try day.tags.all()
                     let newtags = tags.compactMap { $0.name }
                     var jDay = try day.makeJSON()
                     jDay.removeKey("initialized")
                     try jDay.set("initialized", newtags)
+                    try jDay.set("finalized", try Workout.workoutAndMove(forAmount: 10, forTypes: tags))
                     newDays.append(jDay)
                 } else {
                     newDays.append(try day.makeJSON())

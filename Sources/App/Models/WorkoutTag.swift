@@ -81,7 +81,9 @@ extension WorkoutTag: Updateable {
 }
 
 extension WorkoutTag {
-    
+    var workouts: Siblings<WorkoutTag, Workout, Pivot<WorkoutTag, Workout>> {
+        return siblings()
+    }
 }
 
 
