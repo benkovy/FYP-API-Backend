@@ -193,6 +193,31 @@ extension Droplet {
             return json
         }
         
+        token.get("workoutsForUser") { req in
+            let user = try req.user()
+            guard let id = user.id?.string else { throw Abort.badRequest }
+            guard let workouts = try? Workout.makeQuery().filter("creator", .equals, id).all() else { throw Abort.badRequest }
+            var jsonWebWorkouts: [JSON] = []
+            try workouts.forEach {
+                var stringTags: [String] = []
+                let movements = try $0.movements.all()
+                let tags = try $0.tags.all()
+                tags.forEach { stringTags.append($0.name) }
+                var jWorkout = try $0.makeJSON()
+                let jMovements = try movements.makeJSON()
+                try jWorkout.set("movements", jMovements)
+                try jWorkout.set("tags", stringTags)
+                if let id = $0.id?.string {
+                    try jWorkout.set("image", WorkoutController.image(id: id))
+                }
+                guard let user = try User.find($0.creator) else { throw Abort.notFound }
+                let userName = user.firstname + " " + user.lastname
+                try jWorkout.set("creatorName", userName)
+                jsonWebWorkouts.append(jWorkout)
+            }
+            return try jsonWebWorkouts.makeJSON()
+        }
+        
         
         token.get("routineForToken") { req in
             let user = try req.user()

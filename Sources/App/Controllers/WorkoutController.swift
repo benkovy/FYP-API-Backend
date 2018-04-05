@@ -20,6 +20,11 @@ final class WorkoutController: ResourceRepresentable {
         return json
     }
     
+    func workoutForTag(req: Request) throws -> ResponseRepresentable {
+        let workouts = try req.tagArray()
+        return workouts
+    }
+    
     func getWorkoutAndMovements(_ req: Request) throws -> ResponseRepresentable {
 //        let amount = try req.parameters.next(Int.self)
         guard let workouts = try? Workout.all() else { throw Abort.badRequest }
@@ -216,5 +221,17 @@ extension WorkoutController {
         let workoutDirWithImage = workoutDir.appendingPathComponent("workoutImage")
         return try? Data(contentsOf: workoutDirWithImage).base64EncodedString()
     }
+}
 
+extension Request {
+    func tagArray() throws -> JSON {
+        guard let js = json else { throw Abort.badRequest }
+        guard let arrayJson = js.array else {throw Abort.badRequest}
+        let tags: [WorkoutTag] = try arrayJson.compactMap {
+            guard let str = $0.string else {throw Abort.badRequest}
+            return WorkoutTag(name: str)
+        }
+        let workouts = try Workout.workoutAndMove(forAmount: 10, forTypes: tags)
+        return workouts
+    }
 }

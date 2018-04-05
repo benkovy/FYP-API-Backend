@@ -29,5 +29,7 @@ extension Droplet {
         
         get("routine", String.parameter, "day", handler: routine.getRoutineDays)
         
+        post("workoutWithTags", handler: workout.workoutForTag)
+        
     }
 }
