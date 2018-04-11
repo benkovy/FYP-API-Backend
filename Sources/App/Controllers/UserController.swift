@@ -84,6 +84,7 @@ final class UserController: ResourceRepresentable {
         let id = try req.parameters.next(String.self)
         
         guard let user = try User.find(id) else {throw Abort.badRequest}
+        
         try user.update(for: req)
         var json = try user.makeJSON()
         try json.set("image", UserController.image(id: id))

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Vapor
 
 extension String {
     func stringToDate(withFormat format: String) -> Date? {

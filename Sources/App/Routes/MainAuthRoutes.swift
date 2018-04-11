@@ -12,6 +12,11 @@ import AuthProvider
 extension Droplet {
     
     func setupUnauthenticatedRoutes() throws {
+        post("addTag") { req in
+            let tags = try req.tag()
+            return try tags.makeJSON()
+        }
+        
         
         post("profileImage") { req in
             guard
@@ -54,6 +59,8 @@ extension Droplet {
             let parts = imageName.split(separator: "|")
             let id = parts[1].description
             let filename = parts[0].description
+            
+            
             
             let baseDir = URL(fileURLWithPath: "/Users/benkovacs/Documents/workspaces/FourthYearProject/Vapor/FYP-API/").appendingPathComponent("images")
             

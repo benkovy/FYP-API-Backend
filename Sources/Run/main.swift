@@ -21,5 +21,4 @@ try config.setup()
 
 let drop = try Droplet(config)
 try drop.setup()
-print(drop.config.workDir)
 try drop.run()

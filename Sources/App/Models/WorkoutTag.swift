@@ -86,4 +86,44 @@ extension WorkoutTag {
     }
 }
 
+extension Request {
+    func tag() throws -> [WorkoutTag] {
+        guard let json = json else { throw Abort.badRequest }
+        if let array = json.array {
+            if array.count == 1, let str = array.first?.string?.lowercased() {
+                guard let _ = try WorkoutTag.makeQuery().filter("name", .equals, str).first() else {
+                    let newTag = WorkoutTag(name: str)
+                    try newTag.save()
+                    let allTags = try WorkoutTag.all()
+                    return allTags
+                }
+            } else {
+                for s in array {
+                    if let str = s.string?.lowercased() {
+                        if try WorkoutTag.makeQuery().filter("name", .equals, str).first() == nil {
+                            let newTag = WorkoutTag(name: str)
+                            try newTag.save()
+                        }
+                    }
+                }
+            }
+        }
+        let allTags = try WorkoutTag.all()
+        return allTags
+    }
+    
+    func tagArray() throws -> JSON {
+        guard let js = json else { throw Abort.badRequest }
+        guard let arrayJson = js.array else {throw Abort.badRequest}
+        let tags: [WorkoutTag] = try arrayJson.compactMap {
+            guard let str = $0.string else {throw Abort.badRequest}
+            if let wt = try WorkoutTag.makeQuery().filter("name", .equals, str).first() {
+                return wt
+            } else { throw Abort.badRequest }
+        }
+        let workouts = try Workout.workoutAndMove(forAmount: 10, forTypes: tags)
+        return workouts
+    }
+}
+
 
